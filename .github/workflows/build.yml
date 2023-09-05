@@ -118,8 +118,8 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: ${{ needs.bump_version.outputs.new_tag }}
-          name: Release ${{ needs.bump_version.outputs.new_tag }}
+          tag_name: ${{ needs.bump-version.outputs.new_tag }}
+          name: Release ${{ needs.bump-version.outputs.new_tag }}
           draft: false
           prerelease: false
           files: |
