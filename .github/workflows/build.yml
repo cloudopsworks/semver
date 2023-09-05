@@ -35,7 +35,7 @@ jobs:
       - name: Install Dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y make git g++ upx gcc-arm-linux* g++-arm-linux* .
+          sudo apt-get install -y make git g++ upx gcc-arm-linux* g++-arm-linux*
 
       - name: Make Dependencies
         run: make deps
@@ -70,7 +70,7 @@ jobs:
           go-version: 1.21.x
 
       - name: Install Dependencies
-        run: brew install make git g++ upx
+        run: brew install make git upx
 
       - name: Make Dependencies
         run: make deps
