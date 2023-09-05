@@ -5,6 +5,8 @@ PROJECT_NAME=semver
 GIT_COMMIT=$$(git rev-parse --verify HEAD)
 GIT_TAG=$$(git describe --tag $$(git rev-list --tags --max-count=1))
 TIMESTAMP=$(shell date +'%Y%m%d%H%M%S')
+OS ?= $(shell uname -s | tr '[:upper:]' '[:lower:]')
+OS_ARCH ?= $(shell uname -m)
 
 -include ./makefile.properties
 
@@ -31,8 +33,13 @@ build_production:
 			-s -w" \
 		-o ./bin/$(BIN_PATH) \
 		./cmd/$(CMD_ROOT)
+ifeq ($(OS),darwin)
+	shasum -a 256 -b ./bin/$(BIN_PATH) \
+		| cut -f 1 -d ' ' > ./bin/$(BIN_PATH).sha256
+else
 	sha256sum -b ./bin/$(BIN_PATH) \
 		| cut -f 1 -d ' ' > ./bin/$(BIN_PATH).sha256
+endif
 	ls -lah ./bin/$(BIN_PATH)*
 compress:
 	ls -lah ./bin/$(BIN_PATH)
