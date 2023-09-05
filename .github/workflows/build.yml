@@ -1,0 +1,83 @@
+name: Go Build and Release
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - os: linux
+            arch: amd64
+            ext: ""
+          - os: linux
+            arch: arm64
+            ext: ""
+          - os: darwin
+            arch: amd64
+            ext: ""
+          - os: darwin
+            arch: arm64
+            ext: ""
+          - os: windows
+            arch: 386
+            ext: ".exe"
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+        with:
+          submodules: true
+
+      - name: Setup Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.14.x
+
+      - name: Install Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y make git g++ upx
+
+      - name: Make Dependencies
+        run: make deps
+
+      - name: Build Production
+        run: GOOS=${{ matrix.os }} GOARCH=${{ matrix.arch }} BIN_EXT=${{ matrix.ext }} make build_production
+
+      - name: Compress
+        if: ${{ ! (matrix.os == 'darwin' && matrix.arch 'arm64') }}
+        run: GOOS=${{ matrix.os }} GOARCH=${{ matrix.arch }} BIN_EXT=${{ matrix.ext }} make compress || true
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{ matrix.os }}-${{ matrix.arch }}
+          path: ./bin/*
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Download Artifacts
+        uses: actions/download-artifact@v2
+        with:
+          path: ./bin/
+
+      - name: Install gh CLI
+        run: sudo apt install -y gh
+
+      - name: Create GitHub Release
+        run: |
+          VERSION=$(gh release list --limit 1 --json versionName | jq -r '.[0].versionName')
+          NEW_VERSION=$(echo $VERSION | awk -F. '{$NF = $NF + 1;} 1' OFS=.)
+          gh release create $NEW_VERSION ./bin/* --title "Release $NEW_VERSION" --notes "Release notes for $NEW_VERSION"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

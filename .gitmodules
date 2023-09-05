@@ -1,3 +1,4 @@
 [submodule "scripts/versioning"]
 	path = scripts/versioning
 	url = https://gitlab.com/usvc/dev/go-generate-version.git
+	branch = master
