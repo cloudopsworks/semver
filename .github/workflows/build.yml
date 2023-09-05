@@ -6,7 +6,7 @@ on:
       - master
 
 jobs:
-  build:
+  build-linux-windows:
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -15,12 +15,6 @@ jobs:
             arch: amd64
             ext: ""
           - os: linux
-            arch: arm64
-            ext: ""
-          - os: darwin
-            arch: amd64
-            ext: ""
-          - os: darwin
             arch: arm64
             ext: ""
           - os: windows
@@ -36,12 +30,12 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v2
         with:
-          go-version: 1.14.x
+          go-version: 1.21.x
 
       - name: Install Dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y make git g++ upx
+          sudo apt-get install -y make git g++ upx gcc-arm-linux* g++-arm-linux* .
 
       - name: Make Dependencies
         run: make deps
@@ -50,7 +44,6 @@ jobs:
         run: GOOS=${{ matrix.os }} GOARCH=${{ matrix.arch }} BIN_EXT=${{ matrix.ext }} make build_production
 
       - name: Compress
-        if: ${{ ! (matrix.os == 'darwin' && matrix.arch == 'arm64') }}
         run: GOOS=${{ matrix.os }} GOARCH=${{ matrix.arch }} BIN_EXT=${{ matrix.ext }} make compress || true
 
       - name: Upload Artifacts
@@ -59,8 +52,43 @@ jobs:
           name: ${{ matrix.os }}-${{ matrix.arch }}
           path: ./bin/*
 
+  build-darwin:
+    runs-on: macos-latest
+    strategy:
+      matrix:
+        arch: [amd64, arm64]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Setup Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.21.x
+
+      - name: Install Dependencies
+        run: brew install make git g++ upx
+
+      - name: Make Dependencies
+        run: make deps
+
+      - name: Build Production
+        run: GOOS=darwin GOARCH=${{ matrix.arch }} make build_production
+
+#      - name: Compress
+#        run: GOOS=darwin GOARCH=${{ matrix.arch }} make compress || true
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: darwin-${{ matrix.arch }}
+          path: ./bin/*
+
   release:
-    needs: build
+    needs: [build-linux-windows, build-darwin]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
